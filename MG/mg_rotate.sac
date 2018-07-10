@@ -26,7 +26,7 @@ import Array: all;
  *   copy of the largest array should be applied in SAC as well (1) or not (0).
  */
 
-#define DISTRIB_LAW_BUG_IS_FIXED 1
+#define DISTRIB_LAW_BUG_IS_FIXED 0
 #define USE_SAME_SHORTCUT_AS_IN_FORTRAN 1
 
 /* 
@@ -64,7 +64,7 @@ inline double[+] gen_weights( double[+] wp)
 {
   res = with {
           ( . <= iv <= . )
-          : off = with {
+          { off = with {
                     ( 0*shape(iv) <= ix < shape(iv) )
                     {
                       if ( iv[ix] != 1 )
@@ -73,7 +73,8 @@ inline double[+] gen_weights( double[+] wp)
                         dist = 0;
                     } : dist;
                   } : fold( +, 0 );
-        } : genarray( SHP, wp[[off]] );
+          } : wp[[off]];
+        } : genarray( SHP, 0d);
 
   return( res);
 }
