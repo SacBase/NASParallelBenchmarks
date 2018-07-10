@@ -40,7 +40,7 @@ use Array: all;
  *   All these numbers where gained using gcc on a single processor machine....
  */
 
-#define DISTRIB_LAW_BUG_IS_FIXED 0
+#define DISTRIB_LAW_BUG_IS_FIXED 1
 #define USE_SAME_SHORTCUT_AS_IN_FORTRAN 1
 
 #ifndef MINIMIZE_ADDITIONS
@@ -86,14 +86,14 @@ inline double[+] gen_weights( double[+] wp)
             off = with {
                     ( 0*shape(iv) <= x < shape(iv) )
                     {
-                      if ( iv[ix] != 1 )
+                      if ( iv[x] != 1 )
                         dist = 1;
                       else
                         dist = 0;
                     } : dist;
                   } : fold( +, 0 );
           } : wp[[off]];
-        } : genarray( SHP );
+        } : genarray( SHP, 0d);
 
   return( res);
 }
@@ -117,6 +117,7 @@ inline double[+] gen_weights( double[+] wp)
 #endif
 
 
+inline
 double l2norm_inner( double[+] u)
 {
   sqrsum = with {
@@ -129,6 +130,7 @@ double l2norm_inner( double[+] u)
   return( sqrt( sqrsum/tod(n_elem)));
 }
 
+inline
 double[+] setup_periodic_border( double[+] u)
 {
   for( x=1; x<shape(u)[0]-1; x++) {
@@ -204,13 +206,14 @@ inline double[+] weighted_sum_opt( double[+] u, double[+] tmp, double[+] tmp2, d
 
 double[+], double[+] pre_compute( double[+] u, int i, int j)
 {
+  shp = drop ([2], shape (u));
   tmp = with {
           ( . <= k <= . ) : ( u[i+1, j] + u[i-1, j] + u[i, j+1] + u[i, j-1] );
-        } : genarray( drop( [2], shape(u) ) );
-        
+        } : genarray (shp, [0d]);
+
   tmp2 = with {
            ( . <= k <= . ) : ( u[i-1,j-1] + u[i-1, j+1] + u[i+1, j+1] + u[i+1, j-1] );
-         } : genarray( drop( [2], shape(u) ) );
+         } : genarray (shp, [0d]);
 
   return( tmp, tmp2);
 }
@@ -219,7 +222,7 @@ inline double[+] NullifyBorders( double[+] a)
 {
   res = with {
           ( . < iv < . ) : a[iv];
-        } genarray( shape(a) );
+        } : genarray( shape(a), 0d);
 
   return( res);
 }
@@ -253,12 +256,12 @@ double[+], double[+] pre_compute( double[+] u)
   tmp = with {
           ( [1,1,0] <= x <= shape(u)-2+[0,0,1] )
           : u[x+[1,0,0]] + u[x-[1,0,0]] + u[x+[0,1,0]] + u[x-[0,1,0]];
-        } : genarray( shape(u) );
+        } : genarray( shape(u), 0d);
 
   tmp2 = with {
            ( [1,1,0] <= x <= shape(u)-2+[0,0,1] )
            : u[x+[1,1,0]] + u[x-[1,1,0]] + u[x+[1,-1,0]] + u[x-[1,-1,0]];
-         } : genarray( shape(u) );
+         } : genarray( shape(u), 0d);
 
   return( tmp, tmp2);
 }
@@ -266,7 +269,7 @@ double[+], double[+] pre_compute( double[+] u)
 inline double[+] relax_kernel( double[+] w, double[+] u)
 {
   tmp, tmp2 = pre_compute( u);
-  
+
   r = with {
         ( 0*shape(u)+1 <= x <= shape(u)-2 )
         : weighted_sum_opt( u, tmp, tmp2, x, w);
@@ -286,6 +289,7 @@ inline double[+] relax_kernel( double[+] w, double[+] u)
 }
 #endif
 
+inline
 double[+] relax( double[+] u, double[+] v)
 {
   r = v - relax_kernel( A, u);
@@ -293,6 +297,7 @@ double[+] relax( double[+] u, double[+] v)
   return(r);
 }
 
+inline
 double[+] smooth( double[+] z, double[+] r)
 {
   z = z + relax_kernel( S, r);
@@ -300,6 +305,7 @@ double[+] smooth( double[+] z, double[+] r)
   return( z);
 }
 
+inline
 double[+] smooth( double[+] r)
 {
   z = relax_kernel( S, r);
@@ -307,6 +313,7 @@ double[+] smooth( double[+] r)
   return( z);
 }
 
+inline
 double[+] fine2coarse( double[+] r)
 {
   rn = with {
@@ -318,12 +325,13 @@ double[+] fine2coarse( double[+] r)
   return(rn);
 }
 
+inline
 double[+] coarse2fine( double[+] rn)
 {
   r = with {
         ( 0*shape(rn) <= iv <= 2*shape(rn)-3 step 0*shape(rn)+2 ) : rn[iv/2];
       } : genarray( 2*shape(rn)-2, 0d );
-  
+
   r = relax_kernel( Q, r);
   r = setup_periodic_border(r);
   return(r);
@@ -331,6 +339,7 @@ double[+] coarse2fine( double[+] rn)
 
 
 
+inline
 double[+] mgrid( double[+] r)
 { /*
    * non-coarsest grid: r(k-1) = P r(k)			(fine2coarse)
@@ -348,6 +357,7 @@ double[+] mgrid( double[+] r)
   return(z);
 }
 
+inline
 double[S0,S0,S0] mgrid( double[S0,S0,S0] r)
 {
   z = smooth( r);
@@ -366,6 +376,18 @@ double nas_mgrid( double[S2, S2, S2] u, double[S2, S2, S2] v,
 specialize
 double nas_mgrid( double[S3, S3, S3] u, double[S3, S3, S3] v,
                   int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S4, S4, S4] u, double[S4, S4, S4] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S5, S5, S5] u, double[S5, S5, S5] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S6, S6, S6] u, double[S6, S6, S6] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S7, S7, S7] u, double[S7, S7, S7] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
 
 double nas_mgrid( double[+] u, double[+] v, int[+] pos, int[+] neg, int iter)
 {
@@ -380,9 +402,8 @@ double nas_mgrid( double[+] u, double[+] v, int[+] pos, int[+] neg, int iter)
   r = relax( u, v);
 
   i = 0;
-  
+
   do {
-    
 #if USE_SAME_SHORTCUT_AS_IN_FORTRAN
     rn = fine2coarse(r);
     zn = mgrid(rn);
@@ -394,7 +415,7 @@ double nas_mgrid( double[+] u, double[+] v, int[+] pos, int[+] neg, int iter)
 #endif
 
     r  = relax( u, v);
-  
+
     i += 1;
   }
   while (i<iter);
@@ -423,59 +444,11 @@ int main()
   pos  = (int[10, 3]) FibreScanIntArray();
   neg  = (int[10, 3]) FibreScanIntArray();
 
-  if(size == 256) {
-    u_256 = with {
-              ( [0,0,0] <= x <= [S7-1,S7-1,S7-1] ) : 0d;
-            } : genarray( [S7,S7,S7] );
-    
-    v_256 = with {
-              ( [0,0,0] <= x <= [S7-1,S7-1,S7-1] ) : 0d;
-            } : genarray( [S7,S7,S7] );
+  u = genarray([size+2,size+2,size+2], 0d);
 
-    z = nas_mgrid(u_256, v_256, pos, neg, iter);
-  }
-  else{
-    if(size == 128) {
-      u_128 = with {
-                ( [0,0,0] <= x <= [S6-1,S6-1,S6-1] ) : 0d;
-              } : genarray( [S6,S6,S6] );
+  v = genarray([size+2,size+2,size+2], 0d);
 
-      v_128 = with {
-                ( [0,0,0] <= x <= [S6-1,S6-1,S6-1] ) : 0d;
-              } : genarray( [S6,S6,S6] );
-
-      z = nas_mgrid(u_128, v_128, pos, neg, iter);
-    }
-    else {
-      if(size == 64) {
-        u_64 = with {
-                 ( [0,0,0] <= x <= [S5-1,S5-1,S5-1] ) : 0d;
-               } : genarray( [S5,S5,S5] );
-        v_64 = with {
-                 ( [0,0,0] <= x <= [S5-1,S5-1,S5-1] ) : 0d;
-               } : genarray( [S5,S5,S5] );
-
-        z = nas_mgrid(u_64, v_64, pos, neg, iter);
-      }
-      else{
-        if(size == 32) {
-          u_32 = with {
-                   ( [0,0,0] <= x <= [S4-1,S4-1,S4-1] ) : 0d;
-                 } : genarray( [S4,S4,S4] );
-          v_32 = with {
-                   ( [0,0,0] <= x <= [S4-1,S4-1,S4-1] ) : 0d;
-                 } : genarray( [S4,S4,S4] );
-
-          z = nas_mgrid(u_32, v_32, pos, neg, iter);
-        }
-        else {
-          size = 0;
-          iter = 0;
-          z = 0d;
-        }
-      }
-    }
-  }
+  z = nas_mgrid(u, v, pos, neg, iter);
 
   printf( " L2-Norm after %d iteration(s) with max. grid [%d,%d,%d]: %.10e\n", 
           iter, size+2, size+2, size+2, z);

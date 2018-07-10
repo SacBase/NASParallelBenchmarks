@@ -3,6 +3,14 @@ import Math: all;
 import Array: all;
 use RandLC: all;
 
+#define OUTPUT
+
+#ifdef NOOUTPUT
+#undef OUTPUT
+#define printf(...) deadbeef = 0
+#define print(...) deadbeef = 0
+#endif
+
 #define EPSILON         1.0e-8
  
 inline double[.] GenRndArray(int n, RandLC &rand)
@@ -25,6 +33,7 @@ inline double[.] take_subgrid( int offset, int spread, double[.] a, int n)
   return(res);
 }
 
+inline
 double, double, int[10] group(RandLC &rand, int n){
   rnds = GenRndArray(n, rand);
   rndsa = 2d*rnds-1d;
@@ -142,6 +151,7 @@ int main ()
   printf( "\n syk: %64.32f", syk);
   printf( "\n");
 
+#ifdef OUTPUT
   if (verified){
     printf("Verified\n");
   }
@@ -150,5 +160,8 @@ int main ()
   }
 
   return(0);
+#else
+  return (verified && sum(Q) >= 0 ? 0 : 1);
+#endif
 }
 

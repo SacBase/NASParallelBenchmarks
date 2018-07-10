@@ -3,6 +3,13 @@ use Math: all;
 use RandLC: all;
 use Structures: all;
 
+#define OUTPUT
+#ifdef NOOUTPUT
+#undef OUTPUT
+#define printf(...) deadbeaf = 0
+#define print(...) deadbeaf = 0
+#endif
+
 #ifndef CLASS_B
 #ifndef CLASS_S
 #ifndef CLASS_T
@@ -521,7 +528,11 @@ int main()
     printf("\n");
   }
 
+#ifdef OUTPUT
   return(0);
+#else
+  return(toi(check));
+#endif
 }
 
 

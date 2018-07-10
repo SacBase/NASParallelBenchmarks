@@ -4,6 +4,13 @@ use Math: all;
 use RandLC: all;
 use RTimer: all;
 
+#define OUTPUT
+#ifdef NOOUTPUT
+#undef OUTPUT
+#define print(...) deadbeaf = 0
+#define printf(...) deadbeaf = 0
+#endif
+
 #ifndef CLASS_B
 #ifndef CLASS_S
 #ifndef CLASS_T
@@ -536,6 +543,7 @@ int main()
   
   stopRTimer( rtimer);
 
+#ifdef OUTPUT
   if( all( abs((checks - Validate()) / Validate()) <= EPS) ) {
     verif = "SUCCESSFUL";
   } else {
@@ -564,6 +572,9 @@ int main()
          NX,NY,NZ,NITER,elapsed,gflops,verif);
 
   return(0);
+#else
+  return (all( abs((checks - Validate()) / Validate()) <= EPS) ? 0 : 1);
+#endif
 }
 
 

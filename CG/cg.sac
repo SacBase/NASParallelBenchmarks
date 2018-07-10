@@ -15,6 +15,13 @@
  *          sac2c cg.sac -DCLASS=X     !-->
  */
 
+#define OUTPUT
+
+#ifdef NOOUTPUT
+#undef OUTPUT
+#define printf(...) xxxxxxx = 0
+#endif
+
 #define S 1
 #define W 2
 #define A 3
@@ -561,6 +568,7 @@ int main() {
   else gflops = 0d;
   printf("\n\n CG Benchmark Completed.\n");
 
+#ifdef OUTPUT
 #ifdef CLASS
   printf(" Class\t\t =\t%s\n", CLASS_STR );
 #else
@@ -576,5 +584,8 @@ int main() {
          " Compile date\t =\t"__DATE__"  \n\n\n",
          (int)n,(int)niter,(double)elapsed,(double)gflops,(String::string)verif);
 
-  return(0);
+  return (0);
+#else
+  return (toi(x[0]));
+#endif
 }

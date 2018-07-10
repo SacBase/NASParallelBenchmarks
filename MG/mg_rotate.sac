@@ -26,7 +26,7 @@ import Array: all;
  *   copy of the largest array should be applied in SAC as well (1) or not (0).
  */
 
-#define DISTRIB_LAW_BUG_IS_FIXED 0
+#define DISTRIB_LAW_BUG_IS_FIXED 1
 #define USE_SAME_SHORTCUT_AS_IN_FORTRAN 1
 
 /* 
@@ -126,6 +126,7 @@ inline double[+] relax_kernel( double[+] w, double[+] u)
 
 #else
 
+inline
 double[+] relax_kernel( double[+] w, double[+] u)
 {  return(  sel([0],w) * u
          + sel([1],w) * ( rotate( 0, 1, u) + rotate( 0, -1, u)
@@ -146,18 +147,21 @@ double[+] relax_kernel( double[+] w, double[+] u)
 #endif
 
 
+inline
 double[+] relax( double[+] u, double[+] v)
 {
   r = v - relax_kernel( A, u);
   return(r);
 }
 
+inline
 double[+] smooth( double[+] z, double[+] r)
 {
   z = z + relax_kernel( S, r);
   return( z);
 }
 
+inline
 double[+] smooth( double[+] r)
 {
   z = relax_kernel( S, r);
@@ -166,6 +170,7 @@ double[+] smooth( double[+] r)
 
 #if 0
 /* requiers WLIR (included in ssa opts) */
+inline
 double[+] fine2coarse( double[+] r)
 {
   rn = with {
@@ -177,6 +182,7 @@ double[+] fine2coarse( double[+] r)
 
 #else
 /* manual wlir... */
+inline
 double[+] fine2coarse( double[+] r)
 {
   lir_lift = relax_kernel( P, r);
@@ -189,6 +195,7 @@ double[+] fine2coarse( double[+] r)
 }
 #endif
 
+inline
 double[+] coarse2fine( double[+] rn)
 {
   r = with {
@@ -201,6 +208,7 @@ double[+] coarse2fine( double[+] rn)
 
 
 
+inline
 double[+] mgrid( double[+] r)
 { /*
    * non-coarsest grid: r(k-1) = P r(k)			(fine2coarse)
@@ -218,6 +226,7 @@ double[+] mgrid( double[+] r)
   return(z);
 }
 
+inline
 double[S0,S0,S0] mgrid( double[S0,S0,S0] r)
 {
   z = smooth( r);
@@ -259,6 +268,30 @@ double nas_mgrid( double[+] u, double[+] v, int[+] pos, int[+] neg, int iter)
   return(z);
 }
 
+specialize
+double nas_mgrid( double[S0, S0, S0] u, double[S0, S0, S0] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S1, S1, S1] u, double[S1, S1, S1] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S2, S2, S2] u, double[S2, S2, S2] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S3, S3, S3] u, double[S3, S3, S3] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S4, S4, S4] u, double[S4, S4, S4] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S5, S5, S5] u, double[S5, S5, S5] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S6, S6, S6] u, double[S6, S6, S6] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S7, S7, S7] u, double[S7, S7, S7] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
 
 
 /*
@@ -279,60 +312,11 @@ int main()
   pos  = (int[10, 3]) FibreScanIntArray();
   neg  = (int[10, 3]) FibreScanIntArray();
 
+  u = genarray([size,size,size], 0d);
 
-  if(size == 256) {
-    u_256 = with {
-              ( [0,0,0] <= x <= [S7-1,S7-1,S7-1] ) : 0d;
-            } : genarray( [S7,S7,S7] );
-    
-    v_256 = with {
-              ( [0,0,0] <= x <= [S7-1,S7-1,S7-1] ) : 0d;
-            } : genarray( [S7,S7,S7] );
+  v = genarray([size,size,size], 0d);
 
-    z = nas_mgrid(u_256, v_256, pos, neg, iter);
-  }
-  else{
-    if(size == 128) {
-      u_128 = with {
-                ( [0,0,0] <= x <= [S6-1,S6-1,S6-1] ) : 0d;
-              } : genarray( [S6,S6,S6] );
-
-      v_128 = with {
-                ( [0,0,0] <= x <= [S6-1,S6-1,S6-1] ) : 0d;
-              } : genarray( [S6,S6,S6] );
-
-      z = nas_mgrid(u_128, v_128, pos, neg, iter);
-    }
-    else {
-      if(size == 64) {
-        u_64 = with {
-                 ( [0,0,0] <= x <= [S5-1,S5-1,S5-1] ) : 0d;
-               } : genarray( [S5,S5,S5] );
-        v_64 = with {
-                 ( [0,0,0] <= x <= [S5-1,S5-1,S5-1] ) : 0d;
-               } : genarray( [S5,S5,S5] );
-
-        z = nas_mgrid(u_64, v_64, pos, neg, iter);
-      }
-      else{
-        if(size == 4) {
-          u_32 = with {
-                   ( [0,0,0] <= x <= [S1-1,S1-1,S1-1] ) : 0d;
-                 } : genarray( [S1,S1,S1] );
-          v_32 = with {
-                   ( [0,0,0] <= x <= [S1-1,S1-1,S1-1] ) : 0d;
-                 } : genarray( [S1,S1,S1] );
-
-          z = nas_mgrid(u_32, v_32, pos, neg, iter);
-        }
-        else {
-          size = 0;
-          iter = 0;
-          z = 0d;
-        }
-      }
-    }
-  }
+  z = nas_mgrid(u, v, pos, neg, iter);
 
   printf( " L2-Norm after %d iteration(s) with max. grid [%d,%d,%d]: %.10e\n", 
           iter, size, size, size, z);
